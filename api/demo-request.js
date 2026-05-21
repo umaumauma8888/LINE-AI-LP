@@ -8,6 +8,30 @@ const DEMO_URL = "https://line-ai-crm-kappa.vercel.app/";
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || "t@uma-s.com";
+const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || NOTIFY_EMAIL;
+
+const EMAIL_FOOTER = `
+---------
+【お問い合わせ先】
+合同会社UMA
+担当：園田
+メール: t@uma-s.com
+WEB: https://www.uma-s.com
+---------`;
+
+function buildUserEmailText(person, company, email) {
+  return `${person} 様
+
+無料デモへのお申し込みありがとうございます。
+以下のURLからデモ画面をご確認ください。
+
+${DEMO_URL}
+
+会社名: ${company}
+担当者名: ${person}
+メールアドレス: ${email}
+${EMAIL_FOOTER}`;
+}
 
 async function sendEmail(apiKey, payload) {
   const response = await fetch(RESEND_ENDPOINT, {
@@ -61,20 +85,11 @@ module.exports = async function handler(req, res) {
     const userPayload = {
       from: FROM_EMAIL,
       to: [email],
+      reply_to: REPLY_TO_EMAIL,
       subject: "【LINE AI CRM】デモURLのご案内",
-      text: `${person} 様
-
-無料デモへのお申し込みありがとうございます。
-以下のURLからデモ画面をご確認ください。
-
-${DEMO_URL}
-
-会社名: ${company}
-担当者名: ${person}
-メールアドレス: ${email}`
+      text: buildUserEmailText(person, company, email)
     };
 
-    // 管理者通知を先に送る（失敗時は申込者メールを送らない）
     const notifyResult = await sendEmail(apiKey, notifyPayload);
     if (!notifyResult.ok) {
       return res.status(502).json({
